@@ -1,0 +1,62 @@
+---
+title: "第10章 假设的统计验证"
+author: "wmj"
+date: "`r Sys.Date()`"
+output: 
+  officedown::rdocx_document:
+    number_sections: yes
+    df_print: kable
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    echo     = FALSE,
+    warning  = FALSE, 
+    message  = FALSE,
+    fig.asp  = 0.618,
+    dpi      = 300
+)
+options(digits = 3)
+```
+
+
+# 假设检验的基本原理(p174)
+
+# 假设检验的示例(p181)
+
+统计假设检验的步骤可以用以下例子来说明。例如工资水平(X1)和同事间信任(X2)对企业中员工的工作满意度(Y)有正向影响。选定0.05为显著性水平的判别标准，基于由166名被调查者组成的简单随机样本，计算工作满意度与薪资水平和同事间信任得分的回归系数，并据此来检验假设。
+
+
+```{r}
+library(tidyverse)
+
+d <- readxl::read_excel("rawdata/假设检验.xlsx") 
+d %>% sjPlot::view_df()
+d
+```
+
+```{r}
+d1 <- d %>% 
+  rowwise() %>% 
+  transmute(
+    XZ = mean(c_across(starts_with("A"))), # 薪资水平
+    XR = mean(c_across(starts_with("B"))), # 同事间信任
+    MY = mean(c_across(starts_with("E")))  # 工作满意度
+  ) %>% 
+  ungroup()
+d1
+```
+
+
+
+图10-8，假设检验结果(p183)
+```{r}
+mod <- lm(MY ~ XZ + XR, data = d1)
+
+mod %>% 
+  flextable::as_flextable()
+```
+
+
+

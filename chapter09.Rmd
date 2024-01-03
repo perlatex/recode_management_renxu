@@ -1,0 +1,401 @@
+---
+title: "第9章 数据处理与分析"
+author: "wmj"
+date: "`r Sys.Date()`"
+output: 
+  officedown::rdocx_document:
+    number_sections: yes
+    df_print: kable
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    echo     = FALSE,
+    warning  = FALSE, 
+    message  = FALSE,
+    fig.asp  = 0.618,
+    dpi      = 300
+)
+options(digits = 3)
+```
+
+
+
+
+# 数据的初步处理与分析
+
+
+## 单变量描述性统计(p139)
+
+表9-1是一个从17个样本中获得的四个变量得分的数据矩阵。其中，X1和X2是从1到7的离散变量。例如：X1可以代表学历水平，从1到7分别为文盲、小学、初中、高中、大学、硕士、博士；X2 可以代表职位级别，从1到7分别为初级员工、中级员工、高级员工、部门副经理、部门经理、副总经理、总经理；X3可以代表年龄；X4可以代表身高。仅仅从表9-1的17个样本数据中很难提取到有用的信息，因此，需要进行描述性统计分析来对各个变量做进一步的概括和解释。
+
+```{r}
+library(tidyverse)
+
+d <- readxl::read_excel("rawdata/T9-1.xlsx") 
+d %>% sjPlot::view_df()
+d
+```
+
+
+1. 频次与频率分析(p140)
+
+表9-2，工作满意度的频率表(140)
+```{r}
+f1 <- d %>% 
+  count(X1) 
+
+f1 %>% 
+  mutate(percent = 100 * n / sum(n) ) %>% 
+  flextable::flextable() %>% 
+  flextable::autofit()
+```
+
+
+```{r}
+f1 %>% 
+  ggplot(aes(x = X1, y = n)) +
+  geom_col(width = 0.5) +
+  theme_bw()
+```
+
+
+表9-3，年龄的频率表(p141)
+
+```{r}
+f2 <- d %>% 
+  mutate(
+    age_group = case_when(
+     between(X3, 20, 30) ~ "20 ~ 30",
+     between(X3, 30, 40) ~ "30 ~ 40",
+     between(X3, 40, 50) ~ "40 ~ 50",
+     between(X3, 50, 60) ~ "50 ~ 60",
+     between(X3, 60, 70) ~ "60 ~ 70"
+    )
+  ) %>% 
+  count(age_group) 
+
+f2 %>% 
+  mutate(percent = 100 * n / sum(n) ) %>% 
+  flextable::flextable() %>% 
+  flextable::autofit()
+```
+
+
+
+```{r}
+f2 %>%
+  ggplot(aes(x = age_group, y = n)) +
+  geom_col(width = 0.5) +
+  theme_bw()
+```
+
+2. 中心趋势(p141)
+
+3. 离散趋势(p141)
+
+表9-4，X1的标准差计算步骤(p142)
+```{r}
+d %>% 
+  select(ID, X1) %>% 
+  mutate(X1_c = X1 - mean(X1)) %>% 
+  mutate(X1_c_square = X1_c^2) %>% 
+  flextable::flextable() %>% 
+  flextable::autofit()
+```
+
+4. 分布形态(p142)
+
+图9-4，X4的正偏态分布(p143)
+```{r}
+f4 <- d %>% 
+  mutate(
+    height = case_when(
+     between(X4, 150, 160) ~ "150 ~ 160",
+     between(X4, 160, 170) ~ "160 ~ 170",
+     between(X4, 170, 180) ~ "170 ~ 180",
+     between(X4, 180, 190) ~ "180 ~ 190",
+     between(X4, 190, 200) ~ "190 ~ 200",
+     between(X4, 200, 210) ~ "200 ~ 210"
+    )
+  ) %>% 
+  count(height) 
+
+f4 %>% 
+  ggplot(aes(x = height, y = n)) +
+  geom_col(width = 0.5) +
+  theme_bw()
+```
+
+
+图9-5，X2的正偏态分布(p143)
+```{r}
+f2 <- d %>% 
+  count(X2) 
+
+f2 %>% 
+  ggplot(aes(x = X2, y = n)) +
+  geom_col(width = 0.5) +
+  theme_bw()
+```
+
+
+
+
+
+# 多元回归分析(p152)
+
+多元回归分析的内容和功能与一元回归分析基本一致，其基本原理也与一元回归分析相似。所不同的是，多元回归方程中包含两个或更多的自变量。在现实世界中，一个因变量的变化通常受多个自变量的影响。例如：企业员工的工作满意度可能会受到薪资水平、同事间信任和工作一家庭冲突等多个因素影响。也就是说，在线性回归模型中，员工工作满意度的解释变量可能有很多个。这种多个自变量影响一个因变量的问题可以通过多元回归分析来解决。表9-10显示了16名调查参与者在一个因变量（Y）和三个独立变量（Xi）上的得分情况。应用到上述案例中，Y代表员工从1（非常不满意）到5（非常满意）的工作满意度得分，X1代表员工的薪资水平得分，X2代表员工的同事间信任情况得分，X3代表员工的工作一家庭冲突情况得分。表9-11显示了这些变量之间的平均值、标准差和简单相关系数r。当只涉及两个自变量时，多元相关和多元回归最容易理解，因此本节主要阐述只有两个自变量的情况。(p152)
+
+```{r}
+library(tidyverse)
+
+d <- readxl::read_excel("rawdata/多元回归.xlsx") 
+d
+```
+
+表9-11，四个变量的平均值、标准差和简单相关系数(p153)
+```{r}
+d %>% 
+  summarise(
+    across(
+      .cols = everything(),
+      .fns = list(Mean = mean, SD = sd)
+    )
+  ) %>% 
+  pivot_longer(
+    everything(),
+    names_to      = c("items", ".value"),
+    names_pattern = "(.*)_(Mean|SD)"
+  ) %>% 
+  left_join(
+    d %>% corrr::correlate(diagonal = 1) %>% corrr::shave(),
+    by = join_by(items == term)
+  )  %>% 
+  flextable::flextable() %>%  
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::autofit()
+```
+
+表9-12，三个自变量的多元回归结果(p159)
+```{r}
+dc <- d %>% 
+  mutate(across(everything(), ~ (.x - mean(.x)) / sd(.x) )   )
+
+mod1 <- lm(Y ~ 1 + X1 + X2 + X3, data = d)
+mod2 <- lm(Y ~ 1 + X1 + X2 + X3, data = dc)
+```
+
+模型汇总可以用{gtsummary}和{modelsummary}宏包
+```{r, eval=FALSE}
+library(gtsummary)
+
+t1 <- mod1 %>% 
+  gtsummary::tbl_regression(
+    intercept = FALSE,
+    estimate_fun = ~ style_number(.x, digits = 3)
+  ) %>% 
+  modify_column_hide(column = ci) %>%
+  modify_column_unhide(column = std.error)
+
+
+t2 <- mod2 %>% 
+  gtsummary::tbl_regression(
+    intercept = FALSE,
+    estimate_fun = ~ style_number(.x, digits = 3)
+  ) %>% 
+  modify_column_hide(column = ci) %>%
+  modify_column_unhide(column = std.error)
+
+gtsummary::tbl_merge(
+  tbls = list(t1, t2),
+  tab_spanner = c("**non stardarded**", "**stardarded**")
+)
+```
+
+```{r}
+library(modelsummary)
+
+mlist <- lst(mod1, mod2)
+mlist %>% 
+  modelsummary::modelsummary(
+    estimate   = "{estimate}{stars}",
+    statistic  = c("conf.low", "conf.high", "p.value"),
+    shape      = term ~ model + statistic,
+    fmt        = fmt_statistic(estimate = 3),
+    coef_omit  = "(Intercept)",
+    gof_map    = c("r.squared", "adj.r.squared", "F"),
+    output     = "gt"
+  )
+```
+
+
+## 多重共线性诊断(p161)
+
+```{r}
+library(tidyverse)
+
+d <- readxl::read_excel("rawdata/多重共线性诊断.xlsx") 
+d %>% sjPlot::view_df()
+d
+```
+
+
+图9-24，共线性诊断结果(p164)
+
+```{r}
+mod <- lm(Y ~ .,  data = d)
+
+mod %>%  
+  car::vif(type = "predictor") %>%  
+  as.data.frame() %>% 
+  mutate(terms = colnames(d)[-10], .before = 1L) %>% 
+  rename(VIF = 2) %>%  
+  mutate(tolerance = 1/VIF, .after = 1L) %>% 
+  flextable::flextable() %>% 
+  flextable::autofit() 
+```
+
+# 因子分析(p164)
+
+## 探索性因子分析案例(p167)
+
+```{r}
+library(tidyverse)
+
+d <- readxl::read_excel("rawdata/因子分析.xlsx") 
+d %>% sjPlot::view_df()
+d
+```
+
+在进行因子分析之前，要先了解变量之间的相关性，以判断是否适合对数据做因子分析。其中KMO检验用于检查变量间的相关性和偏相关性，KMO统计量的取值在0~1之间。取值越接近1表明变量之间的相关性越强，偏向性越弱，因子分析的效果越好。在实际分析中，当KMO的统计量在0.7以上时，认为做因子分析的效果比较好。(p167)
+
+
+
+表9-13，KMO和巴特利特检验(p168)
+
+宏包{performance}很好用
+```{r}
+library(performance)
+performance::check_factorstructure(d)
+performance::check_kmo(d)
+performance::check_sphericity_bartlett(d)
+```
+
+结果显示：Chisq(15) = 603.28, p < 0.001, KMO =  0.82，均达到推荐值，说明适合做因子分析。
+
+
+
+
+接下来，需要判断因子个数
+```{r}
+library(psych)
+factor.num <- d %>% 
+  fa.parallel(
+    fa = 'both',  # fa ='both'说明同时采用主成分分析法与公共因子分析
+    n.iter = 100  # n.iter 表示迭代次数
+  )
+```
+
+横轴是因子个数，纵轴是特征值。带x的蓝线表示主成分分析法结果，从该线中可看出，有2个节点在特征值(1)的横线之上，在明显的拐点之前，且都高于模拟数据的特征值均值(最上面的红色虚线)，说明适合提取2个因子。
+
+带三角形的蓝线是共同因子分析结果，也是2个节点在特征值(0)的横线之上，在明显的拐点之前，也都高于模拟数据的特征值均值（下面的红色虚线），也说明适合提取2个因子。
+
+
+
+
+接下来提取公因子
+```{r}
+res <- d %>% 
+  fa(nfactors = factor.num$nfact, # 指定因子个数
+     rotate   = "varimax",        # 指定使用最大方差法
+     fm       = "pa",             # 指定使用principal factor solution
+     scores   = TRUE, 
+     e.values = TRUE, 
+     values   = TRUE)
+```
+
+`fa()`函数功能非常丰富，推荐查看帮助文档
+```{r, eval=FALSE}
+?psych::fa()
+```
+
+
+
+绘制因子分析框架图
+```{r}
+fa.diagram(res, simple = FALSE, cut = 0.0, sort = FALSE)
+```
+
+
+表9-14，总方差解释(p168)
+
+```{r, eval=FALSE}
+res$e.values
+res$Vaccounted 
+res$loadings 
+res$weights 
+res$scores 
+```
+
+
+
+```{r}
+res$Vaccounted %>% 
+  as.data.frame() %>%  
+  rownames_to_column("item") %>% 
+  flextable::flextable() %>% 
+  flextable::autofit() %>% 
+  flextable::bg( 
+    i = ~ item == "Proportion Var", 
+    bg = "orange", 
+    part = "body"
+  ) 
+```
+
+
+表9-16，荷载矩阵(p169)
+
+```{r}
+res$loadings %>% 
+  unclass() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("variables") %>% 
+  flextable::flextable() %>% 
+  flextable::autofit() %>% 
+  flextable::bg(i = 1:4, j = 2, bg = "orange") %>% 
+  flextable::bg(i = 5:6, j = 3, bg = "orange") 
+```
+
+
+
+表9-17，权重矩阵(p170)
+
+```{r}
+res$weights %>% 
+  as.data.frame() %>% 
+  rownames_to_column("variables") %>% 
+  flextable::flextable() %>% 
+  flextable::autofit() 
+```
+
+
+因子分析可以看做是，一个$6 \times 2$的权重矩阵(`res$scores`) 将 $N \times 6$ 的矩阵(`d`)转换成 $N \times 2$的矩阵，这个$N \times 2$矩阵就是(`res$scores`)
+
+
+```{r}
+d1 <- d %>% 
+  mutate(across(everything(), ~(.x - mean(.x)) /sd(.x))) %>% 
+  as.matrix()
+
+as.matrix(d1) %*% as.matrix(res$weights)
+
+# 等价于
+res$scores
+```
+
+## 验证性因子分析(p170)
+
+本节没有提供数据，具体代码实现可以参考第11章。
+

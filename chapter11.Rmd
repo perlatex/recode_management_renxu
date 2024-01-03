@@ -1,0 +1,467 @@
+---
+title: "第11章 结构方程模型"
+author: "wmj"
+date: "`r Sys.Date()`"
+output: 
+  officedown::rdocx_document:
+    number_sections: yes
+    df_print: kable
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    echo     = FALSE,
+    warning  = FALSE, 
+    message  = FALSE,
+    fig.asp  = 0.618,
+    dpi      = 300
+)
+options(digits = 3)
+```
+
+
+
+# 结构方程模型在管理研究中的应用(p200)
+
+## 1.测量模型检验(p203)
+```{r}
+library(tidyverse)
+library(lavaan)
+
+d <- haven::read_sav("rawdata/AMOS结构方程模型.sav") 
+d %>% sjPlot::view_df()
+```
+
+
+
+```{r}
+cfamodel <- '
+  QH  =~  QH1 + QH2 + QH3
+  TZ  =~  TZ1 + TZ2 + TZ3 + TZ4
+  GX  =~  GX1 + GX2 + GX3 + GX4
+  MY  =~  MY1 + MY2 + MY3
+  LZ  =~  LZ1 + LZ2 + LZ3 + LZ4 
+
+'
+
+
+fit_cfa <- cfa(cfamodel, 
+               data = d,
+               estimator = "MLR", 
+               mimic = "Mplus")
+```
+
+
+表11-7，信度检验汇总结果(p211)
+```{r}
+Cronbach_alpha <- semTools::reliability(fit_cfa)[1, ] 
+
+Cronbach_alpha %>% 
+  enframe() %>% 
+  rename(`Cronbach alpha` = value) %>% 
+  flextable::flextable() %>% 
+  flextable::autofit()
+```
+一般认为Cronbach' alpha 的值达到0.6即为可接受的信度，如果系数小于0.6，说明信度**不佳**，需要对测量项进行调整。如果该系数在0.6 ~ 0.7，则说明信度为**中等可信**；如果系数在0.7 ~ 0.9，则说明信度为**可信**；如果系数在0.9以上，则说明信度为**很可信**。(p209)
+
+
+表11-8，各潜变量的组合信度CR值(p212)
+
+```{r}
+CR  <- semTools::compRelSEM(fit_cfa)
+
+CR %>% 
+  enframe() %>% 
+  pivot_wider() %>% 
+  flextable::flextable() %>% 
+  flextable::autofit()
+```
+
+组合信度值反映了由多个测量指标组合而成的整体对构念测量的一致性和稳定性。当CR值大于等于0.7时，说明组合信度良好。(p212)
+
+
+表11-9，因子载荷分析结果(p214)
+
+```{r}
+fit_cfa %>% 
+  parameterEstimates(standardized = T) %>% 
+  filter(op == "=~") %>% 
+  select("Variables" = lhs, "Items" = rhs, "Factor Loading" = std.all) %>% 
+  flextable::flextable() %>% 
+  flextable::merge_v(j = ~ Variables) %>%
+  flextable::border_inner_h() %>% 
+  flextable::border_inner_v() %>% 
+  flextable::autofit()
+```
+
+一般来说，验证性因子分析要求因子荷载在0.70以上。 (p214)
+
+
+表11-10，聚合效度分析结果(p215)
+
+```{r}
+AVE <- semTools::AVE(fit_cfa) 
+
+AVE %>% 
+  enframe() %>% 
+  pivot_wider() %>% 
+  flextable::flextable() %>% 
+  flextable::autofit()
+```
+
+一般来说，AVE值大于0.5，则说明该构念的聚合效度良好。(p215)
+
+
+
+
+表11-11(a)，相关系数分析输出结果(p215)
+
+```{r}
+m <- lavInspect(fit_cfa, what = "cor.lv") 
+m[upper.tri(m)] <- NA
+
+
+m %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var = "variable") %>% 
+  #mutate(across(-variable, ~.x^2)) %>% 
+  rename(" " = variable) %>% 
+  flextable::flextable() %>%
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::autofit() 
+```
+
+
+表11-11(b)，区分效度检验(p215)
+```{r}
+m <- lavInspect(fit_cfa, what = "cor.lv") 
+m[upper.tri(m)] <- NA
+diag(m) <- semTools::AVE(fit_cfa) %>% sqrt()
+
+m %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  rename(" " = rowname) %>% 
+  flextable::flextable() %>%
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::bold(i = 1, j = 2) %>% 
+  flextable::bold(i = 2, j = 3) %>% 
+  flextable::bold(i = 3, j = 4) %>% 
+  flextable::bold(i = 4, j = 5) %>% 
+  flextable::bold(i = 5, j = 6) %>% 
+  flextable::autofit() 
+```
+当AVE的平方根大于该构念与其他构念的相关系数的绝对值时，表明区分效度良好。(p215)
+
+
+论文中，我们往往会一并呈现
+
+```{r}
+CR             <- semTools::compRelSEM(fit_cfa)
+Cronbach_alpha <- semTools::reliability(fit_cfa)[1, ] 
+AVE            <- semTools::AVE(fit_cfa)
+
+tibble(
+  items = names(CR),
+  alpha = Cronbach_alpha,
+  CR    = CR,
+  AVE   = AVE,
+) %>% 
+  flextable::flextable() %>%
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::autofit() 
+```
+
+
+
+表11-12，拟合指数数据(p216)
+
+```{r}
+index <- c(
+    "chisq", "df", "pvalue", "cfi", "tli",
+    "rmsea", "rmsea.ci.lower", "rmsea.ci.upper",
+    "srmr", "aic", "bic"
+  )
+
+fit_cfa %>% 
+ fitMeasures(
+   fit.measures = index,
+   output = "matrix" 
+  ) %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  set_names(c("index", "value")) %>% 
+  flextable::flextable() %>% 
+  flextable::autofit() %>% 
+  flextable::colformat_double(digits = 4)
+```
+
+
+
+```{r}
+library(lavaanExtra)
+fit_cfa %>% 
+  lavaanExtra::nice_fit(nice_table = TRUE) %>% 
+  flextable::fontsize(size = 9, part = "all") %>% 
+  flextable::align(align = "center", part = "body") %>% 
+  flextable::valign(valign = "center", part = "body")
+```
+
+(6) 共同方法偏差
+
+1) Harman 单因素检验法
+
+```{r}
+library(psych)
+fit_efa <- d %>% 
+  fa(nfactors = 4, 
+     rotate   = "varimax", 
+     fm       = "pa", 
+     scores   = TRUE, 
+     e.values = TRUE, 
+     values   = TRUE)
+
+# 特征值选择大于1的个数
+eigenvalue <- fit_efa$e.values
+eigenvalue
+```
+
+```{r}
+fit_efa$Vaccounted 
+```
+
+由输出数据可知，有四个特征根大于1的因子，而且最大因子方差解释度为(23.6%)，小于50%，在合格范围内。因此，可以判定该模型中不存在严重的共同方法偏差。(p217)
+
+
+2) 单因子的验证性因子分析
+```{r}
+one <- '
+  f1  =~  QH1 + QH2 + QH3 +
+          TZ1 + TZ2 + TZ3 + TZ4 +
+          GX1 + GX2 + GX3 + GX4 +
+          MY1 + MY2 + MY3 +
+          LZ1 + LZ2 + LZ3 + LZ4 
+
+'
+
+fit_one <- cfa(model = one, data = d)
+
+fit_one %>% 
+  lavaanExtra::nice_fit(nice_table = TRUE) %>% 
+  flextable::fontsize(size = 9, part = "all") %>% 
+  flextable::align(align = "center", part = "body") %>% 
+  flextable::valign(valign = "center", part = "body")
+```
+
+
+表11-13，单因子模型与假设模型拟合指数数据对比(p219)
+
+```{r}
+mylist <- lst(cfamodel, fit_one)
+mylist %>%
+   map( ~cfa(.x, data = d)) %>%
+   lavaanExtra::nice_fit(nice_table = TRUE) |>
+   flextable::fontsize(size = 9, part = "all")  %>% 
+   flextable::align(align = "center", part = "body") %>% 
+   flextable::valign(valign = "center", part = "body")
+```
+
+单因子模型拟合后的各项拟合指数都在合格范围外，与原模型指标相比较差，因此可以判断出本研究不存在严重的共同方法偏差。(p219)
+
+
+3) 加入共同方法因子的验证性因子分析
+
+```{r}
+bifactor <- '
+
+  QH  =~  NA*QH1 + QH2 + QH3
+  TZ  =~  NA*TZ1 + TZ2 + TZ3 + TZ4
+  GX  =~  NA*GX1 + GX2 + GX3 + GX4
+  MY  =~  NA*MY1 + MY2 + MY3
+  LZ  =~  NA*LZ1 + LZ2 + LZ3 + LZ4 
+  
+
+  G =~  NA* QH1 + QH2 + QH3 +
+        TZ1 + TZ2 + TZ3 + TZ4 +
+        GX1 + GX2 + GX3 + GX4 +
+        MY1 + MY2 + MY3 +
+        LZ1 + LZ2 + LZ3 + LZ4 
+
+
+  QH ~~ 1*QH
+  TZ ~~ 1*TZ
+  GX ~~ 1*GX
+  MY ~~ 1*MY
+  LZ ~~ 1*LZ
+  G  ~~ 1*G
+
+  QH ~~ 0*G
+  TZ ~~ 0*G
+  GX ~~ 0*G
+  MY ~~ 0*G
+  LZ ~~ 0*G
+
+  QH ~~ 0*TZ
+  QH ~~ 0*GX
+  QH ~~ 0*MY
+  QH ~~ 0*LZ
+  TZ ~~ 0*GX
+  TZ ~~ 0*MY
+  TZ ~~ 0*LZ
+  GX ~~ 0*MY
+  GX ~~ 0*LZ
+  MY ~~ 0*LZ
+
+'
+
+
+fit_bi <- cfa(model = bifactor, data = d)
+
+fit_bi %>% 
+  lavaanExtra::nice_fit(nice_table = TRUE) %>% 
+  flextable::fontsize(size = 9, part = "all") %>% 
+  flextable::align(align = "center", part = "body") %>% 
+  flextable::valign(valign = "center", part = "body")
+```
+
+
+
+表11-14，加入共同方法因子后模型及原模型拟合指数数据汇合(p221)
+```{r}
+mylist <- lst(cfamodel, fit_bi)
+mylist %>%
+   map( ~cfa(.x, data = d)) %>%
+   lavaanExtra::nice_fit(nice_table = TRUE) |>
+   flextable::fontsize(size = 9, part = "all")  %>% 
+   flextable::align(align = "center", part = "body") %>% 
+   flextable::valign(valign = "center", part = "body")
+```
+
+通过对比结果可知，加入共同方法偏差因子之后的模型(`fit_bi`)，模型拟合指数改善情况并不明显，即`cfamodel` 与 `fit_bi`差别不大，说明不存在共同方法偏差。(p221)
+
+
+
+
+## 2.结构模型计算(p222)
+
+```{r}
+mod <- '
+  QH =~ QH1 + QH2 + QH3
+  TZ =~ TZ1 + TZ2 + TZ3 + TZ4
+  GX =~ GX1 + GX2 + GX3 + GX4
+  MY =~ MY1 + MY2 + MY3
+  LZ =~ LZ1 + LZ2 + LZ3 + LZ4
+  
+  MY ~ H1*QH + H2*TZ + H3*GX
+  LZ ~ H4*MY
+'
+
+fit_sem <- sem(mod, data = d)
+```
+
+
+表11-15，结构模型拟合指数(p223)
+```{r}
+fit_sem %>% 
+  lavaanExtra::nice_fit(nice_table = TRUE) %>% 
+  flextable::fontsize(size = 9, part = "all") %>% 
+  flextable::align(align = "center", part = "body") %>% 
+  flextable::valign(valign = "center", part = "body")
+```
+
+
+
+表11-16，标准化路径系数及显著性输出结果(p224)
+```{r}
+fit_sem %>% 
+  parameterEstimates(standardized = T) %>% 
+  filter(op == "~") %>% 
+  select(lhs, rhs, label, "coef" = std.all, "p" = pvalue) %>% 
+  mutate(
+    Hypothesis = str_c(label, ": ", rhs, "-->", lhs), 
+    .keep = "unused", 
+    .before = 1
+  ) %>% 
+  mutate(Interpretation = if_else(p <= 0.05, "通过", "不通过")) %>% 
+  flextable::flextable() %>% 
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::autofit()
+```
+
+
+## 3.分析结果(p224)
+
+## 4.利用Amos软件对中介效应进行检验 (p224)
+
+```{r}
+library(tidyverse)
+library(lavaan)
+
+d <- haven::read_sav("rawdata/Amos中介效应检验.sav") 
+```
+
+```{r}
+model <- '
+  QH  =~  QH1 + QH2 + QH3
+  MY  =~  MY1 + MY2 + MY3
+  LZ  =~  LZ1 + LZ2 + LZ3 + LZ4 
+
+  MY ~ a * QH
+  LZ ~ b * MY + cprime * QH
+  
+  indirect  := a*b
+  total     := a*b + cprime
+'
+
+
+fit <- sem(model, 
+           data      = d, 
+           estimator = "ML",
+           se        = "bootstrap", 
+           mimic     = "Mplus")
+```
+
+
+
+表11-17，总效应显著性检验(p227)
+```{r}
+fit %>%
+  #parameterEstimates(standardized = TRUE) %>%
+  standardizedSolution() %>% 
+  filter(label == "total") %>%
+  select(label, est.std, ci.lower, ci.upper, pvalue) %>% 
+  flextable::flextable() %>% 
+  flextable::autofit() %>% 
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::color(j = c("ci.lower", "ci.upper"), color = "red")
+```
+
+
+表11-18，直接效应、间接效应显著性检验(p229)
+```{r}
+fit %>%
+  standardizedSolution() %>% 
+  filter(label %in% c("a", "b", "cprime", "indirect")) %>%
+  select(label, est.std, ci.lower, ci.upper, pvalue) %>% 
+  flextable::flextable() %>% 
+  flextable::autofit() %>% 
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::color(j = c("ci.lower", "ci.upper"), color = "red")
+```
+
+
+表11-19，直接效应、间接效应、总效应估计值(p229)
+```{r}
+fit %>%
+  standardizedSolution() %>% 
+  filter(label %in% c("total", "cprime", "indirect")) %>%
+  select(label, est.std, ci.lower, ci.upper, pvalue) %>% 
+  arrange(factor(label, levels = c("total", "cprime", "indirect"))) %>% 
+  flextable::flextable() %>% 
+  flextable::autofit() %>% 
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::color(j = ~est.std, color = "red")
+```
+
+

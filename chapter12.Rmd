@@ -1,0 +1,640 @@
+---
+title: "第12章 中介与调节效应及检验"
+author: "wmj"
+date: "`r Sys.Date()`"
+output: 
+  officedown::rdocx_document:
+    number_sections: yes
+    df_print: kable
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    echo     = FALSE,
+    warning  = FALSE, 
+    message  = FALSE,
+    fig.asp  = 0.618,
+    dpi      = 300
+)
+options(digits = 3)
+```
+
+
+
+# 效应检验软件操作(p237)
+
+## 1.直接效应检验(p237)
+
+```{r}
+library(tidyverse)
+library(lavaan)
+
+d <- haven::read_sav("rawdata/直接效应检验.sav") 
+d %>% sjPlot::view_df()
+d
+```
+
+
+```{r}
+d1 <- d %>% 
+  rowwise() %>% 
+  mutate(
+    CW_new = mean(c_across(num_range("CW", 1:5))),
+    LH_new = mean(c_across(num_range("LH", 1:5)))
+  ) %>% 
+  ungroup() %>% 
+  rename(age = `年龄`, edu = `学历`) %>% 
+  mutate(
+    across(c(age, edu, LH, CW), ~ (.x - mean(.x))/sd(.x))
+  )
+d1
+```
+
+
+```{r}
+M1 <- lm(LH ~ 1 + age + edu,      data = d1)
+M2 <- lm(LH ~ 1 + age + edu + CW, data = d1)
+```
+
+表12-1，直接效应分层回归分析结果(p241)
+
+```{r}
+library(modelsummary)
+
+mlist <- lst(M1, M2)
+mlist %>% 
+  modelsummary::modelsummary(
+    estimate   = "{estimate}{stars}",
+    statistic  = c("conf.low", "conf.high", "p.value"),
+    shape      = term ~ model + statistic,
+    fmt        = fmt_statistic(estimate = 3),
+    coef_omit  = "(Intercept)",
+    gof_map    = c("r.squared", "adj.r.squared", "F")
+)
+```
+
+可以用以下命令查看并定制参数
+```{r, eval=FALSE}
+modelsummary::gof_map
+```
+
+
+
+
+## 2.中介效应检验(p241)
+
+```{r}
+library(tidyverse)
+library(lavaan)
+
+d <- haven::read_sav("rawdata/SPSS和Smartpls中介效应检验.sav") 
+d %>% sjPlot::view_df()
+d
+```
+
+
+```{r}
+d2 <- d %>% 
+  rowwise() %>% 
+  mutate(
+    CW_new = mean(c_across(num_range("CW", 1:5))),
+    WS_new = mean(c_across(num_range("CW", 1:4))),
+    LH_new = mean(c_across(num_range("LH", 1:5)))
+  ) %>% 
+  ungroup() %>% 
+  rename(age = `年龄`, edu = `学历`) %>% 
+  mutate(
+    across(c(age, edu, LH, CW, WS), ~ (.x - mean(.x))/sd(.x))
+  )
+d2
+```
+
+
+```{r}
+M1 <- lm(LH ~ 1 + age + edu,           data = d2)
+M2 <- lm(LH ~ 1 + age + edu + CW,      data = d2)
+M3 <- lm(LH ~ 1 + age + edu + CW + WS, data = d2)
+```
+
+表12-2，中介效应分层回归分析结果(p245)
+```{r}
+library(modelsummary)
+
+mlist <- lst(M1, M2, M3)
+mlist %>% 
+  modelsummary::modelsummary(
+    estimate   = "{estimate}{stars}",
+    statistic  = c("conf.low", "conf.high", "p.value"),
+    shape      = term ~ model + statistic,
+    fmt        = fmt_statistic(estimate = 3),
+    coef_omit  = "(Intercept)",
+    gof_map    = c("r.squared", "adj.r.squared", "F")
+)
+```
+
+- 观测模型M1，控制变量(age, edu)与因变量间不存在因果关系。
+
+- 观测模型M2，加入自变量之后，回归模型解释因变量(生活幸福感)的变异比例为0.277，自变量(薪酬福利)与因变量(生活幸福感)标准化系数为0.525，具有统计显著性，证明了自变量与因变量间的直接效应。
+
+- 观测模型M3，同时加入自变量和中介变量之后，回归模型解释因变量(生活幸福感)的变异比例为0.365，回归模型的总体显著性也良好，模型M3整体拟合度大于模型M2，显著性更优，且中介变量(工作满意度)与因变量之间的标准化系数为0.417，中介变量的加入，导致自变量与因变量间的标准化系数减少为0.237，依然具有显著性，因此可以说明工作满意度发挥了部分中介效果。(p245)
+
+
+
+## 3.调节效应检验(p245)
+
+```{r}
+library(tidyverse)
+library(lavaan)
+
+d <- haven::read_sav("rawdata/调节效应检验.sav") 
+d %>% sjPlot::view_df()
+d
+```
+
+第一步，计算各变量和交互项。在利用分层回归验证调节效应时，模型中的自变量、调节项和相互项均需要进行中心化处理，而因变量不需要中心化处理。(p245)
+
+```{r}
+d3 <- d %>%
+  rowwise() %>%
+  mutate(
+    IL = mean(c_across(IL1:IL6)),
+    OC = mean(c_across(OC1:OC5)),
+    VB = mean(c_across(VB1:VB5))
+  ) %>%
+  ungroup() %>%
+  rename(age = `年龄`, edu = `学历`) %>%
+  mutate(
+    across(c(age, edu, VB), ~ (.x - mean(.x)) / sd(.x)),
+    across(c(IL, OC),   ~ .x - mean(.x))
+  )
+```
+
+```{r}
+M1 <- lm(VB ~ 1 + age + edu,                   data = d3)
+M2 <- lm(VB ~ 1 + age + edu + IL + OC,         data = d3)
+M3 <- lm(VB ~ 1 + age + edu + IL + OC + IL:OC, data = d3)
+```
+
+
+
+
+表12-3，调节效应分层回归分析结果(p249)
+```{r}
+library(modelsummary)
+
+mlist <- lst(M1, M2, M3)
+mlist %>% 
+  modelsummary::modelsummary(
+    estimate   = "{estimate}{stars}",
+    statistic  = c("conf.low", "conf.high", "p.value"),
+    shape      = term ~ model + statistic,
+    fmt        = fmt_statistic(estimate = 3),
+    coef_omit  = "(Intercept)",
+    gof_map    = c("r.squared", "adj.r.squared", "F")
+)
+```
+
+- 观测模型M1，控制变量年龄与因变量不存在因果关系。
+
+- 观测模型M2，加入自变量和调节变量后，回归模型解释因变量(建言行为)的变异比例为0.427，回归模型的总体显著性良好，并且自变量(包容型领导)与因变量(建言行为)的标准化系数为0.223，具有统计显著性，证明了自变量与因变量的正向直接效应。
+
+- 观测模型M3，加入交互项之后，回归模型解释因变量(建言行为)的变异比例为0.494，回归模型的总体显著性良好，并且交互项与因变量(建言行为)的标准化系数为0.382，具有统计显著性，证明了(组织承诺)调节了包容型领导与建言行为的正向因果关系。(p247)
+
+
+图12-24，简单斜率检测(p249)
+
+```{r, fig.asp=0.618, fig.width = 5}
+library(marginaleffects)
+
+mean_sd <- function(x) mean(x) + c(-sd(x), sd(x))
+
+M3 %>%
+  marginaleffects::predictions(
+    newdata = datagrid(
+      IL  = mean_sd, 
+      OC  = mean_sd
+    )
+  ) %>%
+  as_tibble() %>% 
+  
+  mutate(across(c(IL, OC), as.factor)) %>% 
+  ggplot(aes(x = IL, y = estimate, group = OC)) +
+  geom_line(aes(linetype = OC), linewidth = 2) +
+  scale_x_discrete(
+    name = NULL,
+    labels = c("Low IL", "High IL")
+  ) +
+  scale_y_continuous(
+    name =  "VB",
+    limits = c(-1, 2),
+    expand = c(0, 0)
+  ) +
+  scale_linetype_manual(
+    name   = NULL,
+    values = c("solid", "dotted"),
+    labels = c("Low OC", "High OC")
+  ) +
+  guides(linetype = guide_legend(reverse = TRUE)) +
+  theme_classic() +
+  theme(axis.ticks.x = element_blank())
+```
+
+
+```{r, fig.asp=0.618, fig.width = 5}
+library(interactions)
+
+interact_plot(M3, pred = "IL", modx = "OC")
+```
+
+
+# SmartPLS软件操作检验分析(p250)
+
+SmartPLS是什么玩意？本章大多无法重复。
+
+```{r}
+library(tidyverse)
+library(lavaan)
+
+d <- haven::read_sav("rawdata/SPSS和Smartpls中介效应检验.sav") 
+d %>% sjPlot::view_df()
+d
+```
+
+
+```{r}
+model <- '
+  CW  =~  CW1 + CW2 + CW3 + CW4 + CW5
+  WS  =~  WS1 + WS2 + WS3 + WS4
+  LH  =~  LH1 + LH2 + LH3 + LH4 + LH5
+  
+'
+
+
+fit_cfa <- cfa(model, 
+               data      = d %>% select(-CW, -WS, -LH), 
+               estimator = "MLR",
+               mimic     = "Mplus")
+```
+
+
+
+
+```{r}
+CR             <- semTools::compRelSEM(fit_cfa)
+Cronbach_alpha <- semTools::reliability(fit_cfa)[1, ] 
+AVE            <- semTools::AVE(fit_cfa)
+
+tibble(
+  items = names(CR),
+  alpha = Cronbach_alpha,
+  CR    = CR,
+  AVE   = AVE,
+)
+```
+
+```{r}
+m <- lavInspect(fit_cfa, what = "cor.lv") 
+m[upper.tri(m)] <- NA
+diag(m) <- semTools::AVE(fit_cfa) %>% sqrt()
+m
+```
+
+
+
+
+```{r}
+model <- '
+  CW  =~  CW1 + CW2 + CW3 + CW4 + CW5
+  WS  =~  WS1 + WS2 + WS3 + WS4
+  LH  =~  LH1 + LH2 + LH3 + LH4 + LH5
+
+  WS ~ a * CW
+  LH ~ b * WS + cprime * CW
+  
+  indirect  := a*b
+  total     := a*b + cprime
+'
+
+
+fit_sem <- sem(model, 
+               data      = d %>% select(-CW, -WS, -LH), 
+               estimator = "ML",
+               se        = "bootstrap", 
+               mimic     = "Mplus")
+```
+
+表12-8 中介效应分析结果(p257)
+```{r}
+fit_sem %>% 
+  parameterEstimates(standardized = T) %>% 
+  filter(op == "~") %>% 
+  select(lhs, rhs, label, "coef" = std.all, se, "p" = pvalue) %>% 
+  mutate(
+    Path = str_c(label, ": ", rhs, "-->", lhs), 
+    .keep = "unused", 
+    .before = 1
+  ) %>% 
+  flextable::flextable() %>% 
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::autofit()
+```
+
+
+
+
+
+# 复杂模型检验(p261)
+
+
+## 1. 链式多重中介模型检验(p263)
+
+本节以包容型领导、组织信任、心理安全感和创新行为组成的链式多重中介模型为案例介绍检验步骤。
+
+```{r}
+library(tidyverse)
+library(lavaan)
+
+d <- haven::read_sav("rawdata/多重链式中介模型检验.sav") 
+d %>% sjPlot::view_df()
+d
+```
+
+```{r}
+d5 <- d %>%
+  rowwise() %>%
+  mutate(
+    IL  = mean(c_across(IL1:IL5)),
+    OT  = mean(c_across(OT1:OT4)),
+    SPS = mean(c_across(SPS1:SPS6)),
+    IB  = mean(c_across(IB1:IB5))
+  ) %>%
+  ungroup() %>%
+  rename(age = `年龄`, edu = `学历`) %>%
+  mutate(
+    across(c(age, edu, IL, OT, SPS, IB), ~ (.x - mean(.x)) / sd(.x))
+  )
+```
+
+
+
+
+```{r}
+M1 <- lm(OT  ~ 1 + age + edu + IL,            data = d5)
+M2 <- lm(SPS ~ 1 + age + edu + IL + OT,       data = d5)
+M3 <- lm(IB  ~ 1 + age + edu + IL + OT + SPS, data = d5)
+```
+
+
+表12-13，链式多重中介变量回归分析表(p266)
+```{r}
+library(modelsummary)
+
+mlist <- lst(M1, M2, M3)
+mlist %>% 
+  modelsummary::modelsummary(
+    estimate   = "{estimate}{stars}",
+    statistic  = c("conf.low", "conf.high", "p.value"),
+    shape      = term ~ model + statistic,
+    fmt        = fmt_statistic(estimate = 3),
+    coef_omit  = "(Intercept)",
+    gof_map    = c("r.squared", "adj.r.squared", "F"),
+    output     = "gt"
+)
+```
+
+
+
+表12-14，bootstrap中介效应检验表(p268)
+```{r}
+model <- '
+
+  OT  ~ a1 * IL 
+  SPS ~ a2 * IL + d12 * OT
+  
+  IB  ~ cprime * IL + b1 * OT + b2 * SPS
+  
+  Ind_X_M1_Y     :=  a1*b1
+  Ind_X_M2_Y     :=  a2*b2
+  Ind_X_M1_M2_Y  :=  a1*d12*b2
+  total_indrect  :=  a1*b1 + a2*b2 + a1*d12*b2
+  direct         :=  cprime
+  total          :=  a1*b1 + a2*b2 + a1*d12*b2 + cprime
+  
+'
+
+
+fit_sem <- sem(model, 
+               data      = d5, 
+               estimator = "ML",
+               se        = "bootstrap", 
+               bootstrap = 5000,
+               mimic     = "Mplus")
+```
+
+
+
+
+```{r}
+fit_sem %>% 
+  parameterEstimates(standardized = T) %>% 
+  filter(op == ":=") %>% 
+  select(label, est, se, ci.lower, ci.upper, pvalue, std.all) %>% 
+  flextable::flextable() %>% 
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::autofit()
+```
+
+
+## 2.有调节的中介模型检验(p268)
+
+本节以包容型领导、组织支持感、心理授权和建言行为组成的有调节的中介模型为案例。
+
+```{r}
+library(tidyverse)
+library(lavaan)
+
+d <- haven::read_sav("rawdata/有调节的中介模型检验.sav") 
+d %>% sjPlot::view_df()
+d
+```
+
+```{r}
+d6 <- d %>%
+  rowwise() %>%
+  mutate(
+    IL   = mean(c_across(IL1:IL5)),     # 包容型领导
+    PE   = mean(c_across(PE1:PE6)),     # 心理授权
+    POS  = mean(c_across(POS1:POS5)),   # 组织支持感
+    VB   = mean(c_across(VB1:VB5))      # 建言行为
+  ) %>%
+  ungroup() %>%
+  rename(age = `年龄`, edu = `学历`) %>%
+  mutate(
+    across(c(age, edu, IL, PE, POS, VB), ~ (.x - mean(.x)) / sd(.x))
+  )
+```
+
+```{r}
+M1 <- lm(PE  ~ 1 + age + edu + IL,      data = d6)
+M2 <- lm(VB  ~ 1 + age + edu + IL,      data = d6)
+M3 <- lm(VB  ~ 1 + age + edu + IL + PE, data = d6)
+```
+
+
+表12-15，有调节的中介模型的中介效应检验表(p270)
+```{r}
+library(modelsummary)
+
+mlist <- lst(M1, M2, M3)
+mlist %>% 
+  modelsummary::modelsummary(
+    estimate   = "{estimate}{stars}",
+    statistic  = c("conf.low", "conf.high", "p.value"),
+    shape      = term ~ model + statistic,
+    fmt        = fmt_statistic(estimate = 3),
+    coef_omit  = "(Intercept)",
+    gof_map    = c("r.squared", "adj.r.squared", "F"),
+    output     = "gt"
+)
+```
+
+- 观测模型M1，该模型包容型领导为自变量，心理授权为因变量，回归模型解释因变量心理授权的变异比例为0.318，模型总体显著性良好。
+
+- 观测模型M2，该模型包容型领导为自变量，建言行为为因变量，回归模型解释因变量建言行为的变异比例为0.296，模型总体显著性良好。
+
+- 观测模型M3，该模型包容型领导和心理授权为自变量，建言行为因变量，回归模型解释因变量建言行为的变异比例为0.39，模型总体显著性良好。并且模型M3加入中介变量(心理授权)后，中介变量与因变量之间的标准化系数为0.373，具有统计显著性，自变量(包容型领导)与因变量(建言行为)间的标准化系数**减少**为0.352，且依然具有统计显著性。表明直接效应通过了检验，心理授权的中介效应得到了初步验证。(p270)
+
+
+
+表12-16，有调节的中介模型的中介效应bootstrap检验(p271)
+
+```{r}
+model <- '
+
+  PE  ~ a * IL 
+  VB ~ cprime * IL + b * PE
+
+  indrect  :=  a*b 
+  direct   :=  cprime
+  total    :=  a*b + cprime
+  
+'
+
+
+fit_sem <- sem(model, 
+               data      = d6, 
+               estimator = "ML",
+               se        = "bootstrap", 
+               bootstrap = 5000,
+               mimic     = "Mplus")
+```
+
+
+```{r}
+fit_sem %>% 
+  parameterEstimates(standardized = T) %>% 
+  filter(op == ":=") %>% 
+  select(label, est, se, ci.lower, ci.upper, pvalue, std.all) %>% 
+  flextable::flextable() %>% 
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::autofit()
+```
+观察心理授权的间接效应，bootstrap运算结果的区间并未包含0，因此心理授权的中介效应通过了检验。(p270)
+
+
+
+表12-17，有调节的中介模型调节效应检验表(p273)
+```{r}
+d7 <- d %>%
+  rowwise() %>%
+  mutate(
+    IL   = mean(c_across(IL1:IL5)),     # 包容型领导
+    PE   = mean(c_across(PE1:PE6)),     # 心理授权
+    POS  = mean(c_across(POS1:POS5)),   # 组织支持感
+    VB   = mean(c_across(VB1:VB5))      # 建言行为
+  ) %>%
+  ungroup() %>%
+  rename(age = `年龄`, edu = `学历`) %>%
+  mutate(
+    across(c(age, edu, PE, POS, IL, VB), ~ .x - mean(.x))
+  )
+```
+
+
+
+
+```{r}
+M1 <- lm(PE  ~ 1 + age + edu + IL,                      data = d7)
+M2 <- lm(VB  ~ 1 + age + edu + IL + PE + POS + PE:POS,  data = d7)
+```
+
+```{r}
+library(modelsummary)
+
+mlist <- lst(M1, M2)
+mlist %>% 
+  modelsummary::modelsummary(
+    estimate   = "{estimate}{stars}",
+    statistic  = c("conf.low", "conf.high", "p.value"),
+    shape      = term ~ model + statistic,
+    fmt        = fmt_statistic(estimate = 3),
+    coef_omit  = "(Intercept)",
+    gof_map    = c("r.squared", "adj.r.squared", "F"),
+    output     = "gt"
+)
+```
+
+交互项的系数0.187，且具有统计显著性。说明组织支持感正向调节了心理授权与建言行为间的正向直接效应。(p272)
+
+
+图12-61，Johnson-Neyman 法简单斜率图(p274)
+
+```{r}
+library(interactions)
+interactions::johnson_neyman(
+  M2, 
+  pred = "PE", 
+  modx = "POS"
+)
+```
+
+图中横轴表示调节变量(组织支持感)，纵轴表示简单斜率。
+两条竖直虚线在横轴上形成的区域并没有包含0，说明调节效应显著。(p274)
+
+
+表12-18，在组织支持感的不同水平上的中介效应(p275)
+
+```{r}
+model <- '
+
+  PE ~ a * IL 
+  VB ~ cprime * IL + b1 * PE + b2 * POS + b3*PE:POS
+
+  POS ~  POS_mean*1
+  POS ~~ POS_var*POS
+
+  indirect.above := (b1 + b3*(POS_mean + sqrt(POS_var)))*(a)
+  indirect       := (b1 + b3*POS_mean)*(a)
+  indirect.below := (b1 + b3*(POS_mean - sqrt(POS_var)))*(a)
+  
+'
+
+
+fit_sem <- sem(model, 
+               data      = d7, 
+               estimator = "ML",
+               se        = "bootstrap", 
+               bootstrap = 5000,
+               mimic     = "Mplus")
+```
+
+有调节的中介效应，我参考了<https://rpubs.com/cardiomoon/468602>
+```{r}
+fit_sem %>% 
+  parameterEstimates() %>% 
+  filter(op %in% c(":=")) %>%  
+  select(-lhs, -op, -rhs, -z) %>% 
+  flextable::flextable() %>% 
+  flextable::colformat_double(digits = 3) 
+```
