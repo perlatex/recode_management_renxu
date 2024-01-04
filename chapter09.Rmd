@@ -129,7 +129,7 @@ f4 %>%
 ```
 
 
-图9-5，X2的正偏态分布(p143)
+图9-5，X2的负偏态分布(p143)
 ```{r}
 f2 <- d %>% 
   count(X2) 
@@ -210,7 +210,7 @@ t2 <- mod2 %>%
 
 gtsummary::tbl_merge(
   tbls = list(t1, t2),
-  tab_spanner = c("**non stardarded**", "**stardarded**")
+  tab_spanner = c("**non standardized**", "**standardized**")
 )
 ```
 
@@ -294,7 +294,7 @@ library(psych)
 factor.num <- d %>% 
   fa.parallel(
     fa = 'both',  # fa ='both'说明同时采用主成分分析法与公共因子分析
-    n.iter = 100  # n.iter 表示迭代次数
+    n.iter = 100  # n.iter = 100 表示迭代次数为100
   )
 ```
 

@@ -6,4 +6,5 @@
 
 运行代码需要安装以下宏包：
 
-`install.packages(c("tidyverse", "flextable", "pysch", "gtsummary", "lavaan", "semTools", "haven", "sjPlot", "corrr", "readxl", "marginaleffects", "scales", "performance", "modelsummary", "lavaanExtra", "interactions"))`
+
+`install.packages(c("tidyverse", "flextable", "pysch", "gtsummary", "lavaan", "semTools", "haven", "sjPlot", "corrr", "readxl", "marginaleffects", "scales", "performance", "modelsummary", "lavaanExtra", "rstatix", "ragg", "officedown", "bookdown", "interactions", "patchwork"))`
