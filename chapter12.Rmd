@@ -98,9 +98,9 @@ d
 d2 <- d %>% 
   rowwise() %>% 
   mutate(
-    CW_new = mean(c_across(num_range("CW", 1:5))),
-    WS_new = mean(c_across(num_range("CW", 1:4))),
-    LH_new = mean(c_across(num_range("LH", 1:5)))
+    CW_new = mean(c_across(num_range("CW", 1:5))),   # 薪酬福利
+    WS_new = mean(c_across(num_range("CW", 1:4))),   # 工作满意度
+    LH_new = mean(c_across(num_range("LH", 1:5)))    # 生活幸福感
   ) %>% 
   ungroup() %>% 
   rename(age = `年龄`, edu = `学历`) %>% 
@@ -158,9 +158,9 @@ d
 d3 <- d %>%
   rowwise() %>%
   mutate(
-    IL = mean(c_across(IL1:IL6)),
-    OC = mean(c_across(OC1:OC5)),
-    VB = mean(c_across(VB1:VB5))
+    IL = mean(c_across(IL1:IL6)),   # 包容型领导
+    OC = mean(c_across(OC1:OC5)),   # 组织承诺
+    VB = mean(c_across(VB1:VB5))    # 建言行为
   ) %>%
   ungroup() %>%
   rename(age = `年龄`, edu = `学历`) %>%
@@ -364,10 +364,10 @@ d
 d5 <- d %>%
   rowwise() %>%
   mutate(
-    IL  = mean(c_across(IL1:IL5)),
-    OT  = mean(c_across(OT1:OT4)),
-    SPS = mean(c_across(SPS1:SPS6)),
-    IB  = mean(c_across(IB1:IB5))
+    IL  = mean(c_across(IL1:IL5)),      # 包容型领导
+    OT  = mean(c_across(OT1:OT4)),      # 组织信任
+    SPS = mean(c_across(SPS1:SPS6)),    # 心理安全感
+    IB  = mean(c_across(IB1:IB5))       # 创新行为
   ) %>%
   ungroup() %>%
   rename(age = `年龄`, edu = `学历`) %>%
