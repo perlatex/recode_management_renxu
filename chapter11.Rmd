@@ -20,6 +20,28 @@ knitr::opts_chunk$set(
 options(digits = 3)
 ```
 
+# 模型的识别与拟合(p197)
+
+图11-9模型中，已知外生潜变量测量指标数目p为4个，内生潜变量的测量指标数目q为8个，模型需要估计的参数数量t为29个。
+
+
+>> 我的理解应该是39个
+
+```{r, echo=FALSE}
+knitr::include_graphics("./simulate/sem.png")
+```
+
+
+表11-2 常用拟合指标的合理取值范围(p200)
+
+```{r}
+library(tidyverse)
+tab11_02 <- readxl::read_excel("./rawdata/T11-02.xlsx", skip = 1L) 
+tab11_02 %>% 
+  flextable::flextable() %>% 
+  flextable::autofit()
+```
+
 
 
 # 结构方程模型在管理研究中的应用(p200)

@@ -1,0 +1,143 @@
+# formlua
+
+
+$$
+\underbrace{\left[\begin{array}{l}
+x_{1 i} \\
+x_{2 i} \\
+x_{3 i} \\
+x_{4 i} \\
+x_{5 i} \\
+x_{6 i} \\
+x_{7 i} \\
+x_{8 i}
+\end{array}\right]}_{\boldsymbol{y}_{i}}=\underbrace{\left[\begin{array}{c}
+\color{red}{\beta_{1}} \\
+\color{red}{\beta_{2}} \\
+\color{red}{\beta_{3}} \\
+\color{red}{\beta_{4}} \\
+\color{red}{\beta_{5}} \\
+\color{red}{\beta_{6}} \\
+\color{red}{\beta_{7}} \\
+\color{red}{\beta_{8}} \\
+\end{array}\right]}_{\boldsymbol{\beta}}+\underbrace{\left[\begin{array}{cc}
+1 & 0 \\
+\color{red}{\lambda_{2}} & 0 \\
+\color{red}{\lambda_{3}} & 0 \\
+\color{red}{\lambda_{4}} & 0 \\
+0 & 1 \\
+0 & \color{red}{\lambda_{5}} \\
+0 & \color{red}{\lambda_{7}} \\
+0 & \color{red}{\lambda_{8}}
+\end{array}\right]}_{\Lambda}\underbrace{\left[\begin{array}{l}
+\eta_{1 j} \\
+\eta_{2 j}
+\end{array}\right]}_{\boldsymbol{\eta}_i}+\underbrace{\left[\begin{array}{c}
+\epsilon_{1 i} \\
+\epsilon_{2 i} \\
+\epsilon_{3 i} \\
+\epsilon_{4 i} \\
+\epsilon_{5 i} \\
+\epsilon_{6 i} \\
+\epsilon_{7 i} \\
+\epsilon_{8 i}
+\end{array}\right]}_{\boldsymbol{\epsilon}_i}\\
+$$
+$$
+\boldsymbol{\epsilon}_{i} \sim N_{I}(\mathbf{0}, \mathbf{\Theta})\\
+\boldsymbol{\eta}_{i} \sim N_{K}(\mathbf{0}, \boldsymbol{\Psi})\\
+$$
+
+
+$$
+\left[\begin{array}{l}
+y_{1 i} \\
+y_{2 i} \\
+y_{3 i} \\
+y_{4 i}
+\end{array}\right]=\left[\begin{array}{c}
+\color{red}{\gamma_{1}} \\
+\color{red}{\gamma_{2}} \\
+\color{red}{\gamma_{3}} \\
+\color{red}{\gamma_{4}}
+\end{array}\right]+\left[\begin{array}{cc}
+1 \\
+\color{red}{\lambda_{10}} \\
+\color{red}{\lambda_{11}} \\
+\color{red}{\lambda_{12}}  
+\end{array}\right]\left[\begin{array}{l}
+\xi_{1 i}
+\end{array}\right]+\left[\begin{array}{c}
+\delta_{1 i} \\
+\delta_{2 i} \\
+\delta_{3 i} \\
+\delta_{4 i}
+\end{array}\right]\\
+$$
+
+
+$$
+\boldsymbol{\Psi}=\mathrm{Cov}\begin{pmatrix}
+\eta_{1j} \\
+\eta_{2j}
+\end{pmatrix}=
+\left[\begin{array}{cc}
+\color{red}{\psi_{1 1}}&\color{red}{\psi_{1 2}} \\
+\psi_{2 1}&\color{red}{\psi_{2 2}}
+\end{array}\right]\\
+$$
+
+
+
+$$
+\mathbf{\Theta}=\mathrm{Cov}\begin{pmatrix}
+\epsilon_{1 i} \\
+\epsilon_{2 i} \\
+\epsilon_{3 i} \\
+\epsilon_{4 i} \\
+\epsilon_{5 i} \\
+\epsilon_{6 i}\\
+\epsilon_{7 i}\\
+\epsilon_{8 i}\\
+\delta_{1 i} \\
+\delta_{2 i} \\
+\delta_{3 i} \\
+\delta_{4 i}
+\end{pmatrix}=
+\left[\begin{array}{cc}
+\color{red}{\theta_{1 1}}&0&0&0&0&0&0&0&0&0&0&0 \\
+0&\color{red}{\theta_{2 2}}&0&0&0&0&0&0&0&0&0&0 \\
+0&0&\color{red}{\theta_{3 3}}&0&0&0&0&0&0&0&0&0 \\
+0&0&0&\color{red}{\theta_{4 4}}&0&0&0&0&0&0&0&0 \\
+0&0&0&0&\color{red}{\theta_{5 5}}&0&0&0&0&0&0&0 \\
+0&0&0&0&0&\color{red}{\theta_{6 6}}&0&0&0&0&0&0 \\
+0&0&0&0&0&0&\color{red}{\theta_{7 7}}&0&0&0&0&0 \\
+0&0&0&0&0&0&0&\color{red}{\theta_{8 8}}&0&0&0&0 \\
+0&0&0&0&0&0&0&0&\color{red}{\sigma_{11}}&0&0&0 \\
+0&0&0&0&0&0&0&0&0&\color{red}{\sigma_{22}}&0&0 \\
+0&0&0&0&0&0&0&0&0&0&\color{red}{\sigma_{33}}&0 \\
+0&0&0&0&0&0&0&0&0&0&0&\color{red}{\sigma_{44}} \\
+\end{array}\right]\\
+$$
+
+
+
+
+
+$$
+\left[\begin{array}{l}
+\xi_{ i}
+\end{array}\right]=\left[\begin{array}{cc}
+\color{red}{\gamma_{11}} & \color{red}{\gamma_{12}}
+\end{array}\right]
+\left[\begin{array}{l}
+\eta_{1 i} \\
+\eta_{2 i}
+\end{array}\right] + \zeta_{j}\\
+$$
+
+
+$$
+\boldsymbol{\zeta_{j} \sim N}(\mathbf{0}, \; \color{red}{\mathbf{\omega}})\\
+$$
+

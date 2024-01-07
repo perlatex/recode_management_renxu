@@ -33,7 +33,7 @@ options(digits = 3)
 ```{r}
 library(tidyverse)
 
-d <- readxl::read_excel("rawdata/T9-1.xlsx") 
+d <- readxl::read_excel("rawdata/T09-01.xlsx") 
 d %>% sjPlot::view_df()
 d
 ```
@@ -399,3 +399,13 @@ res$scores
 
 本节没有提供数据，具体代码实现可以参考第11章。
 
+
+表9-18 验证性因子分析主要内容(p171)
+
+```{r}
+library(tidyverse)
+tab09_18 <- readxl::read_excel("./rawdata/T09-18.xlsx", skip = 1L) 
+tab09_18 %>% 
+  flextable::flextable() %>% 
+  flextable::autofit()
+```
