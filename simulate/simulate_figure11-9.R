@@ -82,6 +82,9 @@ model <- '
 fit <- sem(model, data = dat, meanstructure = TRUE)
 
 summary(fit)
+coef(fit) %>% enframe()
+inspect(fit)
+inspect(fit, "est")
 ######################################################################
 
 
