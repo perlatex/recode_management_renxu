@@ -129,8 +129,24 @@ mlist %>%
     shape      = term ~ model + statistic,
     fmt        = fmt_statistic(estimate = 3),
     coef_omit  = "(Intercept)",
-    gof_map    = c("r.squared", "adj.r.squared", "F")
-)
+    gof_map    = c("r.squared", "adj.r.squared", "F"),
+    output     = "gt"
+) %>% 
+  gt::data_color( 
+    columns = c(6, 10),
+    rows    = 3,
+    colors  = "orange"
+  ) %>% 
+  gt::data_color( 
+    columns = 10,
+    rows    = 4,
+    colors  = "red"
+  ) %>% 
+  gt::data_color( 
+    columns = c(6, 10),
+    rows    = 5,
+    colors  = "pink"
+  )
 ```
 
 - 观测模型M1，控制变量(age, edu)与因变量间不存在因果关系。
@@ -496,7 +512,17 @@ mlist %>%
     coef_omit  = "(Intercept)",
     gof_map    = c("r.squared", "adj.r.squared", "F"),
     output     = "gt"
-)
+) %>% 
+  gt::data_color( 
+    columns = c(6, 10),
+    rows    = 3,
+    colors  = "orange"
+  ) %>% 
+  gt::data_color( 
+    columns = c(6, 10),
+    rows    = 5,
+    colors  = "pink"
+  )
 ```
 
 - 观测模型M1，该模型包容型领导为自变量，心理授权为因变量，回归模型解释因变量心理授权的变异比例为0.318，模型总体显著性良好。
@@ -629,7 +655,7 @@ fit_sem <- sem(model,
                mimic     = "Mplus")
 ```
 
-有调节的中介效应，我参考了<https://rpubs.com/cardiomoon/468602>
+有调节的中介效应
 ```{r}
 fit_sem %>% 
   parameterEstimates() %>% 
@@ -638,3 +664,9 @@ fit_sem %>%
   flextable::flextable() %>% 
   flextable::colformat_double(digits = 3) 
 ```
+
+
+
+# 参考
+
+- <https://rpubs.com/cardiomoon/468602>
