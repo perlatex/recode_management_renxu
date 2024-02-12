@@ -39,15 +39,23 @@ d
 ```
 
 
-1. 频次与频率分析(p140)
+1. 频次与频率分布(p140)
 
 表9-2，工作满意度的频率表(140)
 ```{r}
 f1 <- d %>% 
   count(X1) 
 
+f1 %>%
+  mutate(percent =  n / sum(n)  )
+```
+
+
+```{r}
 f1 %>% 
   mutate(percent = 100 * n / sum(n) ) %>% 
+  mutate(percent = round(percent, 2) ) %>% 
+  mutate(percent = str_c(percent, "%")) %>% 
   flextable::flextable() %>% 
   flextable::autofit()
 ```
@@ -92,6 +100,28 @@ f2 %>%
 ```
 
 2. 中心趋势(p141)
+```{r}
+# 原始数据
+p1 <- d %>% 
+  ggplot(aes(x = X4)) +
+  geom_density()
+
+# 中心化 
+p2 <- d %>% 
+  mutate(X4_c = X4 - mean(X4) ) %>% 
+  ggplot(aes(x = X4_c)) +
+  geom_density()
+
+# 标准化
+p3 <- d %>% 
+  mutate(X4_std = (X4 - mean(X4)) / sd(X4)   ) %>% 
+  ggplot(aes(x = X4_std)) +
+  geom_density()
+
+library(patchwork)
+p1 + p2 + p3
+```
+
 
 3. 离散趋势(p141)
 
@@ -141,7 +171,50 @@ f2 %>%
 ```
 
 
+# 相关分析与一元回归分析(p144)
 
+## 相关分析(p145)
+
+```{r}
+cor(d$X3,  d$X4)
+```
+
+
+```{r}
+d %>% 
+  select(-ID) %>% 
+  cor()
+```
+
+
+```{r}
+d %>% 
+  select(-ID) %>% 
+  corrr::correlate(diagonal = 1L) %>% 
+  corrr::shave() %>% 
+  flextable::flextable() %>% 
+  flextable::colformat_double(digits = 3)
+```
+
+## 一元回归分析(p148)
+
+```{r}
+d %>% 
+  select(-ID) %>% 
+  cov()
+```
+
+
+```{r}
+q1 <- sd(d$X1) *  sd(d$X2)  *  cor(d$X1, d$X2)
+q2 <- sd(d$X1) *  sd(d$X1)  *  cor(d$X1, d$X1)
+q1/q2
+```
+
+
+```{r}
+lm(X2 ~ X1, data = d)
+```
 
 
 # 多元回归分析(p152)
@@ -257,6 +330,8 @@ mod %>%
   flextable::autofit() 
 ```
 
+
+
 # 因子分析(p164)
 
 ## 探索性因子分析案例(p167)
@@ -348,8 +423,8 @@ res$Vaccounted %>%
   flextable::flextable() %>% 
   flextable::autofit() %>% 
   flextable::bg( 
-    i = ~ item == "Proportion Var", 
-    bg = "orange", 
+    i    = ~ item == "Proportion Var", 
+    bg   = "orange", 
     part = "body"
   ) 
 ```
