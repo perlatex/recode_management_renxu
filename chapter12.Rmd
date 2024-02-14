@@ -207,8 +207,14 @@ mlist %>%
     shape      = term ~ model + statistic,
     fmt        = fmt_statistic(estimate = 3),
     coef_omit  = "(Intercept)",
-    gof_map    = c("r.squared", "adj.r.squared", "F")
-)
+    gof_map    = c("r.squared", "adj.r.squared", "F"),
+    output     = "gt"
+ ) %>% 
+  gt::data_color( 
+    columns = 10,
+    rows    = c(5, 6),
+    colors  = "orange"
+  ) 
 ```
 
 - 观测模型M1，控制变量年龄与因变量不存在因果关系。
@@ -667,6 +673,111 @@ fit_sem %>%
 
 
 
-# 参考
+
+# 课后作业
+
+```{r}
+library(tidyverse)
+library(lavaan)
+
+d <- haven::read_sav("rawdata/有调节的中介模型检验.sav") 
+d %>% sjPlot::view_df()
+d
+```
+
+假定模型如下
+
+```{r}
+knitr::include_graphics("./images/homeworkmodel.jpg")
+```
+
+
+计算在组织支持感不同水平的间接效应和直接效应
+
+
+
+## 答案
+
+```{r}
+d7 <- d %>%
+  rowwise() %>%
+  mutate(
+    IL   = mean(c_across(IL1:IL5)),     # 包容型领导
+    PE   = mean(c_across(PE1:PE6)),     # 心理授权
+    POS  = mean(c_across(POS1:POS5)),   # 组织支持感
+    VB   = mean(c_across(VB1:VB5))      # 建言行为
+  ) %>%
+  ungroup() %>%
+  rename(age = `年龄`, edu = `学历`) %>%
+  mutate(
+    across(c(age, edu, PE, POS, IL, VB), ~ .x - mean(.x))
+  )
+```
+
+
+
+
+
+
+```{r}
+model <- '
+  PE  ~  a*IL
+  VB  ~  c1*IL + c2*POS + c3*IL:POS + b1*PE + b2*PE:POS
+  
+  POS ~  POS.mean*1
+  POS ~~ POS.var*POS
+  
+  CE.MonY             := b1 + b2*POS.mean
+  CE.MonY.below       := b1 + b2*(POS.mean-sqrt(POS.var))
+  CE.MonY.above       := b1 + b2*(POS.mean+sqrt(POS.var))
+  
+  
+  indirect            := (a)*(b1 + b2*POS.mean)
+  indirect.below      := (a)*(b1 + b2*(POS.mean - sqrt(POS.var)))
+  indirect.above      := (a)*(b1 + b2*(POS.mean + sqrt(POS.var)))
+  
+  
+  index.mod.med       := a*b2
+  
+  direct              := c1 + c3*POS.mean
+  direct.below        := c1 + c3*(POS.mean - sqrt(POS.var))
+  direct.above        := c1 + c3*(POS.mean + sqrt(POS.var))
+  
+  
+  total               := direct + indirect
+  total.below         := direct.below + indirect.below
+  total.above         := direct.above + indirect.above
+  
+  
+  prop.mediated       := indirect / total
+  prop.mediated.below := indirect.below / total.below
+  prop.mediated.above := indirect.above / total.above
+  
+'
+
+fit_sem <- sem(model, 
+               data      = d7, 
+               estimator = "ML",
+               se        = "bootstrap", 
+               bootstrap = 5000,
+               mimic     = "Mplus")
+```
+
+
+```{r}
+fit_sem %>% 
+  parameterEstimates() %>% 
+  filter(op %in% c(":=")) %>%  
+  select(-lhs, -op, -rhs, -z) %>% 
+  flextable::flextable() %>% 
+  flextable::colformat_double(digits = 3) 
+```
+
+
+
+
+
+
+## 参考
 
 - <https://rpubs.com/cardiomoon/468602>

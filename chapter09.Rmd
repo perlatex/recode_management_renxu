@@ -484,3 +484,86 @@ tab09_18 %>%
   flextable::flextable() %>% 
   flextable::autofit()
 ```
+
+
+
+
+
+
+```{r}
+library(tidyverse)
+
+d <- readxl::read_excel("rawdata/因子分析.xlsx") 
+d %>% sjPlot::view_df()
+d
+```
+
+
+```{r}
+library(lavaan)
+
+model <- "
+  f1 =~ X1 + X2 + X3
+  f2 =~ X4 + X5 + X6
+"
+
+fit_cfa <- cfa(model, data = d)
+summary(fit_cfa)
+```
+
+
+表9-21 因子荷载系数矩阵
+```{r}
+fit_cfa %>% 
+  parameterEstimates(standardized = TRUE) %>% 
+  filter(op == "=~") %>% 
+  select(rhs, est, se, z, pvalue, std.all)
+```
+
+表9-22 模型AVE和CR指标结果
+
+```{r}
+CR             <- semTools::compRelSEM(fit_cfa)
+Cronbach_alpha <- semTools::reliability(fit_cfa)[1, ] 
+AVE            <- semTools::AVE(fit_cfa)
+
+tibble(
+  items = names(CR),
+  alpha = Cronbach_alpha,
+  CR    = CR,
+  AVE   = AVE,
+) %>% 
+  flextable::flextable() %>%
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::autofit() 
+```
+
+
+
+表9-23 区分效度：pearson相关与AVE平方根值
+
+```{r}
+m <- lavInspect(fit_cfa, what = "cor.lv") 
+m[upper.tri(m)] <- NA
+diag(m) <- semTools::AVE(fit_cfa) %>% sqrt()
+
+m %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  rename(" " = rowname) %>% 
+  flextable::flextable() %>%
+  flextable::colformat_double(digits = 3) %>% 
+  flextable::autofit() 
+```
+
+
+表9-24 模型拟合指标
+
+```{r}
+library(lavaanExtra)
+fit_cfa %>% 
+  lavaanExtra::nice_fit(nice_table = TRUE) %>% 
+  flextable::fontsize(size = 9, part = "all") %>% 
+  flextable::align(align = "center", part = "body") %>% 
+  flextable::valign(valign = "center", part = "body")
+```
