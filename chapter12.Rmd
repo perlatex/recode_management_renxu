@@ -362,7 +362,125 @@ fit_sem %>%
   flextable::autofit()
 ```
 
+## PLS-PM
 
+在数学上结构方程模型有两种实现方法
+
+- CBSEM  (covariance-based SEM)                  
+- PLS-PM (Partial Least Squares Path Modeling) 
+
+前者常用lavaan宏包，后者往往用cSEM、seminr等宏包
+
+
+### 使用cSEM
+```{r}
+library(tidyverse)
+
+d <- haven::read_sav("rawdata/SPSS和Smartpls中介效应检验.sav") %>% 
+    select(-CW, -WS, -LH)
+
+d %>% sjPlot::view_df()
+```
+
+
+```{r}
+library(cSEM)
+
+model <- '
+  CW  =~  CW1 + CW2 + CW3 + CW4 + CW5
+  WS  =~  WS1 + WS2 + WS3 + WS4
+  LH  =~  LH1 + LH2 + LH3 + LH4 + LH5
+
+  WS ~  CW
+  LH ~  WS + CW
+  
+'
+
+
+fit <- csem(.data             = d, 
+            .model            = model, 
+            .approach_weights = "PLS-PM",
+            .resample_method  = "bootstrap")
+```
+
+
+```{r}
+summarize(fit)
+assess(fit)
+infer(fit)
+predict(fit)
+verify(fit)
+```
+
+
+
+### 使用seminr
+
+```{r}
+library(tidyverse)
+
+d <- haven::read_sav("rawdata/SPSS和Smartpls中介效应检验.sav") %>% 
+    select(-CW, -WS, -LH)
+
+d %>% sjPlot::view_df()
+```
+
+
+
+```{r}
+library(seminr)
+
+mm <- constructs(
+  reflective("CW",  multi_items("CW", 1:5)),
+  reflective("WS",  multi_items("WS", 1:4)),
+  reflective("LH",  multi_items("LH", 1:5))
+)
+
+sm <- relationships(
+  paths(from = "WS",  to = "LH"),
+  paths(from = "CW",  to = c("WS", "LH"))
+)
+
+pls_model <- estimate_pls(
+  data              = d,
+  measurement_model = mm,
+  structural_model  = sm
+)
+
+
+fit <- summary(pls_model)
+summary(fit)
+```
+
+
+```{r}
+fit$paths
+fit$fSquare
+fit$total_effects
+fit$total_indirect_effects
+fit$loadings
+fit$validity
+fit$reliability
+```
+
+
+
+```{r}
+boot_estimates <- bootstrap_model(pls_model, nboot = 1000, cores = parallel::detectCores())
+```
+
+
+```{r}
+boot <- summary(boot_estimates)
+
+boot$bootstrapped_paths
+boot$bootstrapped_loadings
+```
+
+
+```{r}
+plot(boot_estimates)
+```
 
 
 
